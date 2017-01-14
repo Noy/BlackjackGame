@@ -1,2 +1,2 @@
 # BlackjackGame
-A Blackjack Mini-game @OwenRaines and I made.
+A Blackjack Mini-game @Raines and I made.
