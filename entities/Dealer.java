@@ -1,6 +1,7 @@
 package me.owenandnoy.blackjack.entities;
 
 import lombok.Getter;
+import lombok.SneakyThrows;
 import me.owenandnoy.blackjack.Blackjack;
 import me.owenandnoy.blackjack.gameutils.Card;
 import me.owenandnoy.blackjack.gameutils.DeckOfCards;
@@ -49,7 +50,10 @@ public final class Dealer implements Entity {
         this.activeCards.active = true;
     }
 
-    public void showShowing() { Blackjack.print(activeCards.active ? name + " is waiting.." : name + " has: " + activeCards.getPoints() + " points"); }
+    public void showShowing() {
+        Blackjack.print(activeCards.active ? name + " is waiting.." : name + " has: " + activeCards.getPoints() + " points");
+        sleepToWait();
+    }
 
     public void play() {
         while(activeCards.active) {
@@ -68,6 +72,7 @@ public final class Dealer implements Entity {
     public void hit(Card card) {
         activeCards.addCard(giveCard());
         Blackjack.print(name + " hit and now they have " + activeCards.getAllCards() + " or " + activeCards.getPoints() + " points.");
+        sleepToWait();
         if (activeCards.getPoints() > 21) {
             Blackjack.print(name + " is busted with " + activeCards.getPoints() + "!");
             endRound();
@@ -76,7 +81,14 @@ public final class Dealer implements Entity {
 
     @Override
     public void stay() {
-        Blackjack.print(name + " is staying with: " + activeCards.getAllCards() + " or " + activeCards.getPoints() + " points.");
+        Blackjack.print(name + " is staying with: " + activeCards.getAllCards() + "or " + activeCards.getPoints() + " points.");
+        sleepToWait();
         endRound();
+    }
+
+    @SneakyThrows
+    @Override
+    public void sleepToWait() {
+        Thread.sleep(2000);
     }
 }
