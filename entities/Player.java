@@ -6,17 +6,14 @@ import me.owenandnoy.blackjack.Blackjack;
 import me.owenandnoy.blackjack.gameutils.Card;
 import me.owenandnoy.blackjack.gameutils.ActiveCards;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Scanner;
+import java.util.*;
 
 @Data
 public final class Player implements Entity {
 
     public String name = "";
     public Integer numberOfPlayers = 0;
-    private Integer money = 2000;
+    private Integer money = (int)(Math.ceil(Math.random()*100));
     private List<ActiveCards> activeCardsList = new ArrayList<>();
     private ActiveCards currentActiveCards;
     public boolean active = true;
@@ -46,6 +43,7 @@ public final class Player implements Entity {
     public void show() {
         for (ActiveCards ac : activeCardsList) {
             Blackjack.print(name + " has: " + ac.getPoints());
+            sleepToWait();
         }
     }
 
@@ -62,7 +60,6 @@ public final class Player implements Entity {
             Blackjack.print("Say hit to hit, stay to stay!");
             input = scanner.next();
         }
-        if (input.equalsIgnoreCase("exit")) System.exit(0);
         if (input.startsWith("s")) return 0;
         if (input.startsWith("h")) return 1;
         return null;
@@ -77,51 +74,65 @@ public final class Player implements Entity {
             endRound();
         } else if (currentActiveCards.getPoints() == 21) {
             Blackjack.print("Awesome, you got 21!");
+            money += currentActiveCards.getBetValue() * 2;
             endRound();
         }
     }
 
     @Override
     public void stay() {
-        Blackjack.print(name + " is staying with: " + currentActiveCards.getName() + " and " + currentActiveCards.getPoints() + " points.");
+        Blackjack.print(name + " is staying with: " + currentActiveCards.getName() + " or " + currentActiveCards.getPoints() + " points.");
+        sleepToWait();
         endRound();
+    }
+
+    @SneakyThrows
+    @Override
+    public void sleepToWait() {
+        Thread.sleep(2000);
     }
 
     @SneakyThrows
     Integer makeBet() {
         Scanner scanner = new Scanner(System.in);
         Integer betNumber;
-        Blackjack.print("What's your bet gonna be? You have " + money);
+        Blackjack.print("What's your bet gonna be? You have £" + money);
         String next = scanner.next();
         betNumber = Integer.parseInt(next);
         while (betNumber < 1 || betNumber > money) {
-            Blackjack.print("Make sure you have enough money and the bet is a positive number! You have " + money);
+            Blackjack.print("Make sure you have enough money and the bet is a positive number! You have £" + money);
             next = scanner.next();
             betNumber = Integer.parseInt(next);
+            break;
         }
         money -= betNumber;
         return betNumber;
     }
 
     public void settle(Integer dealerHand) {
-        for (ActiveCards h : activeCardsList) {
-            if (Objects.equals(dealerHand, h.getPoints())) {
+        for (ActiveCards activeCards : activeCardsList) {
+            if (Objects.equals(dealerHand, activeCards.getPoints())) {
+                if (activeCards.getPoints() > 21) return;
                 Blackjack.print("It's a draw!");
-                money = money + h.getBetValue(); // doesn't win lose
+                money = money + activeCards.getBetValue(); // doesn't win lose
+                activeCardsList = new ArrayList<>();
                 return;
             }
-            if (h.getPoints() > 21) {
-                Blackjack.print(name + " busted and lost " + h.getBetValue() + ", their cards: " + h.getAllCards());
-            } else if (dealerHand < h.getPoints() || dealerHand > 21) {
-                if (h.isAutoWin()) {
-                    Blackjack.print(name + " has won automatically and won " + ((2 * h.getBetValue())) + "!");
-                    money += (10 * h.getBetValue()) / 5;
+            if (activeCards.getPoints() > 21) {
+                Blackjack.print(name + " busted and lost £" + activeCards.getBetValue() + ", their cards: " + activeCards.getAllCards());
+            } else if (dealerHand < activeCards.getPoints() || dealerHand > 21) {
+                if (activeCards.isAutoWin()) {
+                    if (Objects.equals(dealerHand, activeCards.getPoints())) return;
+                    Blackjack.print(name + " has won automatically and won " + ((2 * activeCards.getBetValue())) + "!");
+                    money += activeCards.getBetValue() * 2;
+                    activeCardsList = new ArrayList<>();
+                    return;
                 }
-                Blackjack.print(name + " beat the dealer and got back " + h.getBetValue() * 2);
-                money += h.getBetValue() * 2;
+                Blackjack.print(name + " beat the dealer and won £" + activeCards.getBetValue() * 2);
+                money += activeCards.getBetValue() * 2;
             } else {
                 Blackjack.print(name + " has lost against the dealer!");
-                money += money - h.getBetValue();
+                // no need to minus money as they've already placed their bet which deducts it anyway
             }
         }
         if (money <= 0) quit();
@@ -130,9 +141,7 @@ public final class Player implements Entity {
 
     private void updateCHand() {
         this.currentActiveCards = null;
-        for (ActiveCards h : activeCardsList) {
-            if (h.isActive()) this.currentActiveCards = h;
-        }
+        activeCardsList.stream().filter(ActiveCards::isActive).forEach(h -> this.currentActiveCards = h);
     }
 
     private void endRound() {
